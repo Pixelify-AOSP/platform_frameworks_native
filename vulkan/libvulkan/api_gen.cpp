@@ -17,6 +17,7 @@
 // WARNING: This file is generated. See ../README.md for instructions.
 
 #include <log/log.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <algorithm>
@@ -30,6 +31,20 @@
  */
 namespace vulkan {
 namespace api {
+
+static inline void spoof_vk_physical_device_properties(VkPhysicalDeviceProperties* props) {
+    if (__builtin_expect(props != nullptr, 1)) {
+        const char* spoofVkDevice = getenv("SPOOF_VULKAN_DEVICE");
+        if (spoofVkDevice != nullptr && spoofVkDevice[0] != '\0') {
+            strncpy(props->deviceName, spoofVkDevice, VK_MAX_PHYSICAL_DEVICE_NAME_SIZE - 1);
+            props->deviceName[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE - 1] = '\0';
+            const char* spoofVendorId = getenv("SPOOF_VULKAN_VENDOR_ID");
+            if (spoofVendorId != nullptr && spoofVendorId[0] != '\0') {
+                props->vendorID = static_cast<uint32_t>(strtoul(spoofVendorId, nullptr, 0));
+            }
+        }
+    }
+}
 
 #define UNLIKELY(expr) __builtin_expect((expr), 0)
 
@@ -1038,6 +1053,7 @@ VKAPI_ATTR PFN_vkVoidFunction GetInstanceProcAddr(VkInstance instance, const cha
 
 VKAPI_ATTR void GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties* pProperties) {
     GetData(physicalDevice).dispatch.GetPhysicalDeviceProperties(physicalDevice, pProperties);
+    spoof_vk_physical_device_properties(pProperties);
 }
 
 VKAPI_ATTR void GetPhysicalDeviceQueueFamilyProperties(VkPhysicalDevice physicalDevice, uint32_t* pQueueFamilyPropertyCount, VkQueueFamilyProperties* pQueueFamilyProperties) {
@@ -1598,6 +1614,9 @@ VKAPI_ATTR void GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice, VkPh
 
 VKAPI_ATTR void GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties2* pProperties) {
     GetData(physicalDevice).dispatch.GetPhysicalDeviceProperties2(physicalDevice, pProperties);
+    if (__builtin_expect(pProperties != nullptr, 1)) {
+        spoof_vk_physical_device_properties(&pProperties->properties);
+    }
 }
 
 VKAPI_ATTR void GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice, VkFormat format, VkFormatProperties2* pFormatProperties) {

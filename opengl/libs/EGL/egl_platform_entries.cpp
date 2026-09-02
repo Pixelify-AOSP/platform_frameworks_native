@@ -2487,6 +2487,17 @@ EGLBoolean eglGetFrameTimestampSupportedANDROIDImpl(EGLDisplay dpy, EGLSurface s
 }
 
 const GLubyte* glGetStringImpl(GLenum name) {
+    if (__predict_false(name == GL_RENDERER)) {
+        const char* spoofRenderer = getenv("SPOOF_GPU_RENDERER");
+        if (spoofRenderer != nullptr && spoofRenderer[0] != '\0') {
+            return reinterpret_cast<const GLubyte*>(spoofRenderer);
+        }
+    } else if (__predict_false(name == GL_VENDOR)) {
+        const char* spoofVendor = getenv("SPOOF_GPU_VENDOR");
+        if (spoofVendor != nullptr && spoofVendor[0] != '\0') {
+            return reinterpret_cast<const GLubyte*>(spoofVendor);
+        }
+    }
     const GLubyte* ret = egl_get_string_for_current_context(name);
     if (ret == NULL) {
         gl_hooks_t::gl_t const* const _c = &getGlThreadSpecific()->gl;
